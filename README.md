@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Paint by Numbers Generator
 
-## Getting Started
+Turn any image into a printable **paint-by-numbers** artwork.
 
-First, run the development server:
+This project is an open-source, browser-based paint-by-numbers generator built with modern web technologies. It allows you to upload an image, reduce it to a configurable color palette, and generate clean, printable templates with numbered regions and an optional painted preview.
+
+## 🙏 Inspiration
+
+This project is inspired by the open-source repository:
+
+https://github.com/drake7707/paintbynumbersgenerator
+
+The core concept comes from there. This project builds upon that idea with a modern web stack, improved SVG generation, and a better overall user experience.
+
+## ✨ Features
+
+- Upload any image
+- Adjustable number of colors
+- Automatic region (facet) detection
+- Merge small regions for cleaner results
+- High-quality **SVG** output (perfect for printing)
+- Optional painted preview
+- Configurable smoothing
+- Numbered regions
+- Color palette with number → color mapping
+- Modern, clean UI
+- Open-source and self-hostable
+
+## 🖼 Demo
+
+👉 Live demo: _(coming soon)_
+
+## 🛠 Tech Stack
+
+- **Next.js** (App Router)
+- **TypeScript**
+- **Sharp** – image processing
+- **SVG** – vector output
+- **SVGO** – SVG optimization
+- **Tailwind CSS** – UI styling
+
+## ⚙️ How it works
+
+At a high level, the pipeline looks like this:
+
+1. Uploaded image is resized and preprocessed
+2. Colors are quantized to a limited palette
+3. Connected regions (facets) are detected
+4. Small regions are merged for readability
+5. Vector outlines and optional fills are generated
+6. A labeled SVG and optional painted preview are returned
+
+## 🚀 Getting Started
+
+### Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/your-username/paint-by-numbers
+cd paint-by-numbers
+bun install
+bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App available at: `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🤝 Contributing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Contributions are welcome!
 
-## Learn More
+If you have ideas for improvements, bug fixes, or new features:
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Open an issue
+- Submit a pull request
+- Or just share feedback
