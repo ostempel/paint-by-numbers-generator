@@ -6,30 +6,30 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
 import { ImageUpload } from "@/components/image-upload";
 import { CanvasViewer } from "@/components/canvas-viewer";
 import { ColorPalette } from "@/components/color-palette";
-import { Download, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
+import { Scene } from "@/lib/generator/generator";
+import { GeneratorOptions } from "@/components/generator-options";
+import { RenderOptions, RenderSceneOpts } from "@/components/render-options";
 
 type ApiResponse = {
   svg?: string;
   previewPngBase64?: string | null;
   palette?: Array<{ number: number; color: string; rgb: string }>;
+  scene?: Scene | null;
 };
 
-function downloadBlob(filename: string, mime: string, content: string) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+// function downloadBlob(filename: string, mime: string, content: string) {
+//   const blob = new Blob([content], { type: mime });
+//   const url = URL.createObjectURL(blob);
+//   const a = document.createElement("a");
+//   a.href = url;
+//   a.download = filename;
+//   a.click();
+//   URL.revokeObjectURL(url);
+// }
 
 // -------------------------
 // Form schema + types
@@ -37,54 +37,56 @@ function downloadBlob(filename: string, mime: string, content: string) {
 const formSchema = z.object({
   colors: z.number().min(4).max(48),
   minArea: z.number().min(10).max(200),
-  smooth: z.number().min(0).max(1),
-  strokeWidth: z.number().min(0).max(2),
   facetIterations: z.number().min(1).max(10),
-  fontSize: z.number().min(6).max(20),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+export type GeneratorFormValues = z.infer<typeof formSchema>;
 
 export default function PaintByNumbersPage() {
   // Upload state (keep separate from form)
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
+  const [renderOptions, setRenderOptions] = useState<RenderSceneOpts>({
+    smooth: 0.5,
+    filled: true,
+    outlines: true,
+    labels: true,
+    stroke: 1,
+    labelFontSize: 12,
+    background: "white",
+  });
+
   // Processing + results
   const [isProcessing, setIsProcessing] = useState(false);
-  const [svg, setSvg] = useState<string | null>(null);
   const [previewPng, setPreviewPng] = useState<string | null>(null);
   const [colorPalette, setColorPalette] = useState<
     Array<{ number: number; color: string; rgb: string }>
   >([]);
+  const [scene, setScene] = useState<Scene | null>(null);
 
-  const form = useForm<FormValues>({
+  const form = useForm<GeneratorFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       colors: 12,
       minArea: 50,
-      smooth: 0.5,
-      strokeWidth: 1,
       facetIterations: 3,
-      fontSize: 10,
     },
     mode: "onChange",
   });
 
-  const { watch, setValue, handleSubmit } = form;
-  const values = watch();
+  const { handleSubmit } = form;
 
   const handleImageUpload = (file: File, imageUrl: string) => {
     setUploadedFile(file);
     setUploadedImage(imageUrl);
 
     // Optional: clear previous results
-    setSvg(null);
     setPreviewPng(null);
     setColorPalette([]);
   };
 
-  const processImage = async (v: FormValues) => {
+  const processImage = async (v: GeneratorFormValues) => {
     if (!uploadedFile) return;
 
     setIsProcessing(true);
@@ -93,10 +95,7 @@ export default function PaintByNumbersPage() {
       formData.append("file", uploadedFile);
       formData.append("colors", String(v.colors));
       formData.append("minArea", String(v.minArea));
-      formData.append("smooth", String(v.smooth)); // 0..1
-      formData.append("strokeWidth", String(v.strokeWidth));
       formData.append("facetIterations", String(v.facetIterations));
-      formData.append("fontSize", String(v.fontSize));
 
       const res = await fetch("/api/generator", {
         method: "POST",
@@ -110,13 +109,13 @@ export default function PaintByNumbersPage() {
 
       const data = (await res.json()) as ApiResponse;
 
-      setSvg(data.svg ?? null);
       setPreviewPng(
         data.previewPngBase64
           ? `data:image/png;base64,${data.previewPngBase64}`
           : null
       );
       setColorPalette(Array.isArray(data.palette) ? data.palette : []);
+      setScene(data.scene ? data.scene : null);
     } catch (err) {
       console.error(err);
     } finally {
@@ -126,18 +125,18 @@ export default function PaintByNumbersPage() {
 
   const onGenerate = handleSubmit(processImage);
 
-  const handleDownloadSVG = () => {
-    if (!svg) return;
-    downloadBlob("paint-by-numbers.svg", "image/svg+xml", svg);
-  };
+  // const handleDownloadSVG = () => {
+  //   if (!svg) return;
+  //   downloadBlob("paint-by-numbers.svg", "image/svg+xml", svg);
+  // };
 
-  const handleDownloadPNG = () => {
-    if (!previewPng) return;
-    const a = document.createElement("a");
-    a.href = previewPng;
-    a.download = "paint-by-numbers.png";
-    a.click();
-  };
+  // const handleDownloadPNG = () => {
+  //   if (!previewPng) return;
+  //   const a = document.createElement("a");
+  //   a.href = previewPng;
+  //   a.download = "paint-by-numbers.png";
+  //   a.click();
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -166,205 +165,14 @@ export default function PaintByNumbersPage() {
             />
           </Card>
 
-          {/* Settings */}
-          <Card className="p-4 shadow-sm">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">
-              Settings
-            </h2>
+          <GeneratorOptions
+            form={form}
+            disabled={!uploadedFile}
+            isProcessing={isProcessing}
+            onGenerate={onGenerate}
+          />
 
-            <div className="space-y-5">
-              {/* colors */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Number of colors
-                  </Label>
-                  <span className="text-sm font-medium text-gray-900">
-                    {values.colors}
-                  </span>
-                </div>
-                <Slider
-                  min={4}
-                  max={48}
-                  step={1}
-                  value={[values.colors]}
-                  onValueChange={([n]) =>
-                    setValue("colors", n, { shouldDirty: true })
-                  }
-                  className="w-full"
-                />
-              </div>
-
-              {/* min area */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Minimum area
-                  </Label>
-                  <span className="text-sm font-medium text-gray-900">
-                    {values.minArea}
-                  </span>
-                </div>
-                <Slider
-                  min={10}
-                  max={200}
-                  step={10}
-                  value={[values.minArea]}
-                  onValueChange={([n]) =>
-                    setValue("minArea", n, { shouldDirty: true })
-                  }
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Merge smaller regions
-                </p>
-              </div>
-
-              {/* smoothing */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Smoothing
-                  </Label>
-                  <span className="text-sm font-medium text-gray-900">
-                    {Math.round(values.smooth * 100)}%
-                  </span>
-                </div>
-                <Slider
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={[Math.round(values.smooth * 100)]}
-                  onValueChange={([n]) =>
-                    setValue("smooth", n / 100, { shouldDirty: true })
-                  }
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Technical → Organic
-                </p>
-              </div>
-
-              {/* min area */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Stroke width
-                  </Label>
-                  <span className="text-sm font-medium text-gray-900">
-                    {values.strokeWidth}
-                  </span>
-                </div>
-                <Slider
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  value={[values.strokeWidth]}
-                  onValueChange={([n]) =>
-                    setValue("strokeWidth", n, { shouldDirty: true })
-                  }
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Width of the stroke around each facet
-                </p>
-              </div>
-
-              {/* font-size */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Font size
-                  </Label>
-                  <span className="text-sm font-medium text-gray-900">
-                    {values.fontSize}
-                  </span>
-                </div>
-                <Slider
-                  min={6}
-                  max={20}
-                  step={1}
-                  value={[values.fontSize]}
-                  onValueChange={([n]) =>
-                    setValue("fontSize", n, { shouldDirty: true })
-                  }
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Font size of the labels
-                </p>
-              </div>
-
-              {/* facet-iterations */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Facet iterations
-                  </Label>
-                </div>
-                <Input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={values.facetIterations}
-                  onChange={(e) =>
-                    setValue("facetIterations", Number(e.target.value), {
-                      shouldDirty: true,
-                    })
-                  }
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Number of passes to merge small facets
-                </p>
-              </div>
-
-              {/* generate */}
-              <div className="pt-2">
-                <Button
-                  className="w-full"
-                  variant="secondary"
-                  disabled={!uploadedFile || isProcessing}
-                  onClick={onGenerate}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    "Generate"
-                  )}
-                </Button>
-                <p className="text-xs text-gray-500 mt-1">
-                  Click “Generate” to apply changes.
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Export */}
-          <Card className="p-4 shadow-sm">
-            <h2 className="text-sm font-semibold text-gray-900 mb-3">Export</h2>
-            <div className="space-y-2">
-              <Button
-                onClick={handleDownloadSVG}
-                className="w-full bg-transparent"
-                variant="outline"
-                disabled={!svg || isProcessing}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download SVG
-              </Button>
-              <Button
-                onClick={handleDownloadPNG}
-                className="w-full"
-                disabled={!previewPng || isProcessing}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download PNG
-              </Button>
-            </div>
-          </Card>
+          <RenderOptions value={renderOptions} onChange={setRenderOptions} />
         </aside>
 
         {/* Main */}
@@ -379,7 +187,11 @@ export default function PaintByNumbersPage() {
               </div>
             )}
 
-            <CanvasViewer image={previewPng} />
+            <CanvasViewer
+              image={previewPng}
+              scene={scene}
+              renderOptions={renderOptions}
+            />
           </div>
 
           {colorPalette.length > 0 && (

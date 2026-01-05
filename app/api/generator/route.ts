@@ -1,4 +1,4 @@
-import { run } from "@/lib/generator/run";
+import { generateScene, generateSvg } from "@/lib/generator/generator";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -78,11 +78,12 @@ export async function POST(req: Request) {
 
   const opts = parsed.data;
 
-  const { svg, previewPng, palette } = await run(buf, opts);
+  const { svg, previewPng } = await generateSvg(buf, opts);
+  const { scene } = await generateScene(buf, opts);
 
   return NextResponse.json({
     svg,
     previewPngBase64: previewPng ? previewPng.toString("base64") : null,
-    palette,
+    scene,
   });
 }

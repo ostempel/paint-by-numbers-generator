@@ -1,31 +1,104 @@
 "use client";
 
 import type React from "react";
-
-import { useState, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ZoomIn, ZoomOut, Grid3x3 } from "lucide-react";
+import { ZoomIn, ZoomOut, Grid3x3, Download } from "lucide-react";
 import Image from "next/image";
+import { Scene } from "@/lib/generator/generator";
+import { renderSceneSvg } from "@/lib/renderScene";
+import { RenderSceneOpts } from "./render-options";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CanvasViewerProps {
-  image: string | null;
+  image?: string | null;
+  scene?: Scene | null;
+  renderOptions: RenderSceneOpts;
 }
 
-export function CanvasViewer({ image }: CanvasViewerProps) {
+function downloadText(filename: string, mime: string, text: string) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function svgToPngDataUrl(svg: string, width: number, height: number) {
+  const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(svgBlob);
+
+  try {
+    const img = new window.Image();
+    img.decoding = "async";
+    img.loading = "eager";
+
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Could not get 2D canvas context"));
+          return;
+        }
+
+        // Optional: white background (PNG transparency otherwise)
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/png"));
+      };
+
+      img.onerror = () => reject(new Error("Failed to load SVG into image"));
+      img.src = url;
+    });
+
+    return dataUrl;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function downloadDataUrl(filename: string, dataUrl: string) {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  a.click();
+}
+
+export function CanvasViewer({
+  image = null,
+  scene = null,
+  renderOptions,
+}: CanvasViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isExporting, setIsExporting] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleZoomIn = () => {
-    setZoom((prev) => Math.min(prev + 0.25, 3));
-  };
+  const svgString = useMemo(() => {
+    if (!scene) return null;
+    return renderSceneSvg(scene, renderOptions);
+  }, [scene, renderOptions]);
 
-  const handleZoomOut = () => {
-    setZoom((prev) => Math.max(prev - 0.25, 0.25));
-  };
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.25));
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsPanning(true);
@@ -33,19 +106,41 @@ export function CanvasViewer({ image }: CanvasViewerProps) {
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isPanning) {
-      setPan({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y,
-      });
+    if (!isPanning) return;
+    setPan({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y,
+    });
+  };
+
+  const handleMouseUp = () => setIsPanning(false);
+
+  const hasContent = Boolean(scene) || Boolean(image);
+
+  const exportSvg = () => {
+    if (!svgString) return;
+    downloadText("paint-by-numbers.svg", "image/svg+xml", svgString);
+  };
+
+  const exportPng = async () => {
+    if (!svgString || !scene) return;
+    setIsExporting(true);
+    try {
+      const pngUrl = await svgToPngDataUrl(
+        svgString,
+        scene.width,
+        scene.height
+      );
+      downloadDataUrl("paint-by-numbers.png", pngUrl);
+    } catch (e) {
+      console.error(e);
+      // optional: toast
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  const handleMouseUp = () => {
-    setIsPanning(false);
-  };
-
-  if (!image) {
+  if (!hasContent) {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <div className="text-center max-w-md">
@@ -88,9 +183,11 @@ export function CanvasViewer({ image }: CanvasViewerProps) {
         >
           <ZoomOut className="w-4 h-4" />
         </Button>
+
         <span className="text-sm font-medium text-gray-700 min-w-16 text-center">
           {Math.round(zoom * 100)}%
         </span>
+
         <Button
           size="icon"
           variant="outline"
@@ -100,7 +197,9 @@ export function CanvasViewer({ image }: CanvasViewerProps) {
         >
           <ZoomIn className="w-4 h-4" />
         </Button>
+
         <div className="w-px h-6 bg-gray-300 mx-2" />
+
         <Button
           size="icon"
           variant={showGrid ? "default" : "outline"}
@@ -109,6 +208,33 @@ export function CanvasViewer({ image }: CanvasViewerProps) {
         >
           <Grid3x3 className="w-4 h-4" />
         </Button>
+
+        {/* Export dropdown */}
+        <div className="ml-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="rounded-full shadow-sm bg-transparent"
+                disabled={!svgString || isExporting}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {isExporting ? "Exporting..." : "Export"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportSvg} disabled={!svgString}>
+                Download SVG
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={exportPng}
+                disabled={!svgString || !scene || isExporting}
+              >
+                Download PNG
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Canvas Container */}
@@ -130,17 +256,25 @@ export function CanvasViewer({ image }: CanvasViewerProps) {
           className="absolute inset-0 flex items-center justify-center"
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: "center",
           }}
         >
-          <div className="relative w-full h-full">
-            <Image
-              src={image || "/placeholder.svg"}
-              alt="Paint by numbers preview"
-              fill
-              className="object-contain"
-              draggable={false}
-              unoptimized
-            />
+          <div className="relative w-full h-full flex items-center justify-center">
+            {svgString ? (
+              <div
+                className="max-w-full max-h-full"
+                dangerouslySetInnerHTML={{ __html: svgString }}
+              />
+            ) : (
+              <Image
+                src={image || "/placeholder.svg"}
+                alt="Paint by numbers preview"
+                fill
+                className="object-contain"
+                draggable={false}
+                unoptimized
+              />
+            )}
           </div>
         </div>
       </div>
