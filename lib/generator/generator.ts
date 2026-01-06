@@ -141,7 +141,18 @@ export type SceneRegion = {
   label: { x: number; y: number; r?: number };
 };
 
-export async function generateScene(inputImage: Buffer, opts: RunConfig) {
+export type SceneOptions = {
+  radius: number;
+  colors: number;
+  minArea: number;
+  facetIterations: number;
+
+  //TODO
+  //minLabelArea: number;
+  //minLabelDist: number;
+};
+
+export async function generateScene(inputImage: Buffer, opts: SceneOptions) {
   // 1) load + resize + raw pixels
   console.log(`1. 🖼  Processing image buffer...`);
   const img = sharp(inputImage).rotate(); // respect EXIF
@@ -189,7 +200,7 @@ export async function generateScene(inputImage: Buffer, opts: RunConfig) {
   // 5) SVG output
   console.log(`5. 📝 Generating Scene`);
   const scene = facetsToScene(merged, width, height, palette, {
-    radius: opts.smooth,
+    radius: opts.radius,
     minLabelArea: 80,
     minLabelDist: 2,
   });

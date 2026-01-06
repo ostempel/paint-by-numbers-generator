@@ -1,4 +1,4 @@
-import { generateScene, generateSvg } from "@/lib/generator/generator";
+import { generateScene } from "@/lib/generator/generator";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -11,12 +11,6 @@ function isBlobLike(x: any): x is Blob {
   return x && typeof x === "object" && typeof x.arrayBuffer === "function";
 }
 
-const toBool = z.preprocess((v) => {
-  if (typeof v === "boolean") return v;
-  if (typeof v === "string") return v === "true" || v === "1" || v === "on";
-  return v;
-}, z.boolean());
-
 const toNum = z.preprocess((v) => {
   if (typeof v === "number") return v;
   if (typeof v === "string" && v.trim() !== "") return Number(v);
@@ -26,20 +20,13 @@ const toNum = z.preprocess((v) => {
 const FormSchema = z.object({
   colors: toNum.default(24),
   minArea: toNum.default(60),
-  smooth: toNum.default(0.5),
-  strokeWidth: toNum.default(1),
   facetIterations: toNum.default(3),
-  fontSize: toNum.default(12),
-  // defaults for internal options
-  showNumbers: toBool.default(true),
-  filled: toBool.default(true),
-  withPalette: toBool.default(false),
+  radius: toNum.default(1),
 });
 
 export async function POST(req: Request) {
   const form = await req.formData();
 
-  // --- file parsing (keep as-is) ---
   const fileField = form.get("file");
   if (!fileField) {
     return NextResponse.json({ error: "Missing file" }, { status: 400 });
@@ -64,10 +51,8 @@ export async function POST(req: Request) {
     );
   }
 
-  // --- FormData -> plain object ---
   const raw = Object.fromEntries(form.entries());
 
-  // --- validate + defaults ---
   const parsed = FormSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(
@@ -78,12 +63,9 @@ export async function POST(req: Request) {
 
   const opts = parsed.data;
 
-  const { svg, previewPng } = await generateSvg(buf, opts);
   const { scene } = await generateScene(buf, opts);
 
   return NextResponse.json({
-    svg,
-    previewPngBase64: previewPng ? previewPng.toString("base64") : null,
     scene,
   });
 }
