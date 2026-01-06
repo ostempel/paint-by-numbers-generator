@@ -18,7 +18,13 @@ export default function LandingPage() {
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <Image src="/test.png" alt="Logo" width={40} height={40} />
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                width={40}
+                height={40}
+                unoptimized
+              />
               <Link
                 href="/"
                 className="text-xl font-semibold text-gray-900 hover:text-gray-700 transition-colors"
@@ -263,16 +269,16 @@ export default function LandingPage() {
       <footer className="border-t border-gray-200 py-8">
         <div className="container mx-auto px-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-600">
-            <p>Paint by Numbers Generator</p>
+            <p>
+              Paint by Numbers Generator{" "}
+              <span className="text-gray-400">by Oliver Stempel</span>
+            </p>
             <div className="flex gap-6">
-              <Link href="#" className="hover:text-gray-900 transition-colors">
-                About
-              </Link>
-              <Link href="#" className="hover:text-gray-900 transition-colors">
+              <Link
+                href="https://github.com/ostempel/paint-by-numbers-generator"
+                className="hover:text-gray-900 transition-colors"
+              >
                 GitHub
-              </Link>
-              <Link href="#" className="hover:text-gray-900 transition-colors">
-                Privacy
               </Link>
             </div>
           </div>

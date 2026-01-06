@@ -3,11 +3,17 @@
 import type React from "react";
 import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ZoomIn, ZoomOut, Grid3x3, Download } from "lucide-react";
+import {
+  ZoomIn,
+  ZoomOut,
+  Grid3x3,
+  Download,
+  SlidersHorizontal,
+} from "lucide-react";
 import Image from "next/image";
 import { Scene } from "@/lib/generator/generator";
 import { renderSceneSvg } from "@/lib/renderScene";
-import { RenderSceneOpts } from "./render-options";
+import { RenderOptions, RenderSceneOpts } from "./render-options";
 
 import {
   DropdownMenu,
@@ -15,11 +21,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 interface CanvasViewerProps {
   image?: string | null;
   scene?: Scene | null;
-  renderOptions: RenderSceneOpts;
 }
 
 function downloadText(filename: string, mime: string, text: string) {
@@ -81,7 +87,6 @@ function downloadDataUrl(filename: string, dataUrl: string) {
 export function CanvasViewer({
   image = null,
   scene = null,
-  renderOptions,
 }: CanvasViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -89,6 +94,16 @@ export function CanvasViewer({
   const [showGrid, setShowGrid] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isExporting, setIsExporting] = useState(false);
+
+  const [renderOptions, setRenderOptions] = useState<RenderSceneOpts>({
+    smooth: 0.5,
+    filled: true,
+    outlines: true,
+    labels: true,
+    stroke: 1,
+    labelFontSize: 12,
+    background: "white",
+  });
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -235,6 +250,32 @@ export function CanvasViewer({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        <div className="ml-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full bg-transparent"
+              >
+                <SlidersHorizontal className="w-4 h-4 mr-2" />
+                Render
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent
+              align="end"
+              className="w-[360px] p-0"
+              sideOffset={8}
+            >
+              <RenderOptions
+                value={renderOptions}
+                onChange={setRenderOptions}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {/* Canvas Container */}
@@ -244,7 +285,7 @@ export function CanvasViewer({
         style={{
           backgroundImage: showGrid
             ? "repeating-linear-gradient(0deg, transparent, transparent 19px, #e5e7eb 19px, #e5e7eb 20px), repeating-linear-gradient(90deg, transparent, transparent 19px, #e5e7eb 19px, #e5e7eb 20px)"
-            : "repeating-conic-gradient(#f3f4f6 0% 25%, #ffffff 0% 50%) 50% / 20px 20px",
+            : "none",
           cursor: isPanning ? "grabbing" : "grab",
         }}
         onMouseDown={handleMouseDown}

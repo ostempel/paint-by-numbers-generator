@@ -12,7 +12,6 @@ import { ColorPalette } from "@/components/color-palette";
 import { Loader2 } from "lucide-react";
 import { Scene } from "@/lib/generator/generator";
 import { GeneratorOptions } from "@/components/generator-options";
-import { RenderOptions, RenderSceneOpts } from "@/components/render-options";
 
 type ApiResponse = {
   svg?: string;
@@ -47,16 +46,6 @@ export default function PaintByNumbersPage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
-  const [renderOptions, setRenderOptions] = useState<RenderSceneOpts>({
-    smooth: 0.5,
-    filled: true,
-    outlines: true,
-    labels: true,
-    stroke: 1,
-    labelFontSize: 12,
-    background: "white",
-  });
-
   // Processing + results
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewPng, setPreviewPng] = useState<string | null>(null);
@@ -81,7 +70,6 @@ export default function PaintByNumbersPage() {
     setUploadedFile(file);
     setUploadedImage(imageUrl);
 
-    // Optional: clear previous results
     setPreviewPng(null);
     setColorPalette([]);
   };
@@ -125,19 +113,6 @@ export default function PaintByNumbersPage() {
 
   const onGenerate = handleSubmit(processImage);
 
-  // const handleDownloadSVG = () => {
-  //   if (!svg) return;
-  //   downloadBlob("paint-by-numbers.svg", "image/svg+xml", svg);
-  // };
-
-  // const handleDownloadPNG = () => {
-  //   if (!previewPng) return;
-  //   const a = document.createElement("a");
-  //   a.href = previewPng;
-  //   a.download = "paint-by-numbers.png";
-  //   a.click();
-  // };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex flex-col lg:flex-row h-screen">
@@ -171,8 +146,6 @@ export default function PaintByNumbersPage() {
             isProcessing={isProcessing}
             onGenerate={onGenerate}
           />
-
-          <RenderOptions value={renderOptions} onChange={setRenderOptions} />
         </aside>
 
         {/* Main */}
@@ -187,11 +160,7 @@ export default function PaintByNumbersPage() {
               </div>
             )}
 
-            <CanvasViewer
-              image={previewPng}
-              scene={scene}
-              renderOptions={renderOptions}
-            />
+            <CanvasViewer image={previewPng} scene={scene} />
           </div>
 
           {colorPalette.length > 0 && (
