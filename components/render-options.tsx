@@ -17,6 +17,7 @@ export type RenderSceneOpts = {
   smooth: number;
   filled: boolean;
   outlines: boolean;
+  colorPalette: boolean;
   labels: boolean;
   stroke: number;
   labelFontSize: number;
@@ -32,6 +33,7 @@ const LAYERS = [
   { value: "filled", label: "Filled colors" },
   { value: "outlines", label: "Outlines" },
   { value: "labels", label: "Labels" },
+  { value: "colorPalette", label: "Color palette" },
 ] as const;
 
 type LayerKey = (typeof LAYERS)[number]["value"];
@@ -41,6 +43,7 @@ function getSelectedLayers(v: RenderSceneOpts): LayerKey[] {
   if (v.filled) out.push("filled");
   if (v.outlines) out.push("outlines");
   if (v.labels) out.push("labels");
+  if (v.colorPalette) out.push("colorPalette");
   return out;
 }
 
@@ -51,6 +54,7 @@ function applySelectedLayers(prev: RenderSceneOpts, selected: string[]) {
     filled: set.has("filled"),
     outlines: set.has("outlines"),
     labels: set.has("labels"),
+    colorPalette: set.has("colorPalette"),
   };
 }
 
@@ -59,9 +63,7 @@ export function RenderOptions({ value, onChange }: Props) {
 
   return (
     <Card className="p-4 shadow-sm">
-      <h2 className="text-sm font-semibold text-gray-900 mb-4">
-        Render options
-      </h2>
+      <h2 className="text-sm font-semibold text-gray-900">Render options</h2>
 
       <div className="space-y-5">
         {/* Layers multiselect */}

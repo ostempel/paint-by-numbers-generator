@@ -8,31 +8,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Card } from "@/components/ui/card";
 import { ImageUpload } from "@/components/image-upload";
 import { CanvasViewer } from "@/components/canvas-viewer";
-import { ColorPalette } from "@/components/color-palette";
 import { Loader2 } from "lucide-react";
 import { Scene } from "@/lib/generator/generator";
 import { GeneratorOptions } from "@/components/generator-options";
 
 type ApiResponse = {
-  svg?: string;
-  previewPngBase64?: string | null;
-  palette?: Array<{ number: number; color: string; rgb: string }>;
   scene?: Scene | null;
 };
 
-// function downloadBlob(filename: string, mime: string, content: string) {
-//   const blob = new Blob([content], { type: mime });
-//   const url = URL.createObjectURL(blob);
-//   const a = document.createElement("a");
-//   a.href = url;
-//   a.download = filename;
-//   a.click();
-//   URL.revokeObjectURL(url);
-// }
-
-// -------------------------
-// Form schema + types
-// -------------------------
 const formSchema = z.object({
   colors: z.number().min(4).max(48),
   minArea: z.number().min(10).max(200),
@@ -43,15 +26,11 @@ export type GeneratorFormValues = z.infer<typeof formSchema>;
 
 export default function PaintByNumbersPage() {
   // Upload state (keep separate from form)
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   // Processing + results
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewPng, setPreviewPng] = useState<string | null>(null);
-  const [colorPalette, setColorPalette] = useState<
-    Array<{ number: number; color: string; rgb: string }>
-  >([]);
   const [scene, setScene] = useState<Scene | null>(null);
 
   const form = useForm<GeneratorFormValues>({
@@ -66,12 +45,10 @@ export default function PaintByNumbersPage() {
 
   const { handleSubmit } = form;
 
-  const handleImageUpload = (file: File, imageUrl: string) => {
+  const handleImageUpload = (file: File) => {
     setUploadedFile(file);
-    setUploadedImage(imageUrl);
 
     setPreviewPng(null);
-    setColorPalette([]);
   };
 
   const processImage = async (v: GeneratorFormValues) => {
@@ -97,12 +74,6 @@ export default function PaintByNumbersPage() {
 
       const data = (await res.json()) as ApiResponse;
 
-      setPreviewPng(
-        data.previewPngBase64
-          ? `data:image/png;base64,${data.previewPngBase64}`
-          : null
-      );
-      setColorPalette(Array.isArray(data.palette) ? data.palette : []);
       setScene(data.scene ? data.scene : null);
     } catch (err) {
       console.error(err);
@@ -129,14 +100,13 @@ export default function PaintByNumbersPage() {
 
           {/* Image Input */}
           <Card className="p-4 shadow-sm">
-            <h2 className="text-sm font-semibold text-gray-900 mb-3">
-              Image Input
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-900">Image Input</h2>
             <ImageUpload
               // must call onImageUpload(file, url)
+              //TODO
               // @ts-expect-error adjust ImageUpload signature if needed
               onImageUpload={handleImageUpload}
-              currentImage={uploadedImage}
+              currentImage={uploadedFile as string | null}
             />
           </Card>
 
@@ -162,12 +132,6 @@ export default function PaintByNumbersPage() {
 
             <CanvasViewer image={previewPng} scene={scene} />
           </div>
-
-          {colorPalette.length > 0 && (
-            <div className="border-t border-gray-200 bg-white">
-              <ColorPalette colors={colorPalette} />
-            </div>
-          )}
         </main>
       </div>
     </div>

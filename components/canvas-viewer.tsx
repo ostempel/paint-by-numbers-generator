@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { ColorPalette } from "./color-palette";
 
 interface CanvasViewerProps {
   image?: string | null;
@@ -100,6 +101,7 @@ export function CanvasViewer({
     filled: true,
     outlines: true,
     labels: true,
+    colorPalette: true,
     stroke: 1,
     labelFontSize: 12,
     background: "white",
@@ -319,6 +321,13 @@ export function CanvasViewer({
           </div>
         </div>
       </div>
+      {renderOptions.colorPalette &&
+        scene?.palette &&
+        scene.palette.length > 0 && (
+          <div className="mt-4 rounded-lg border border-gray-200 bg-white shadow-sm">
+            <ColorPalette colors={scene.palette} />
+          </div>
+        )}
     </div>
   );
 }

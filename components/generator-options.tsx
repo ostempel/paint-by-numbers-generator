@@ -27,7 +27,7 @@ export function GeneratorOptions({
 
   return (
     <Card className="p-4 shadow-sm">
-      <h2 className="text-sm font-semibold text-gray-900 mb-4">Settings</h2>
+      <h2 className="text-sm font-semibold text-gray-900">Settings</h2>
 
       <div className="space-y-5">
         {/* colors */}
@@ -101,7 +101,7 @@ export function GeneratorOptions({
         {/* generate */}
         <div className="pt-2">
           <Button
-            className="w-full bg-primary-gradient"
+            className="w-full bg-primary-gradient text-white hover:opacity-90"
             variant="secondary"
             disabled={disabled || isProcessing}
             onClick={onGenerate}
