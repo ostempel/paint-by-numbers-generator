@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import FeatureCard from "@/components/feature-card";
 import Image from "next/image";
+import { ImpressionsCarousel } from "@/components/impressions-carousel";
 
 export default function LandingPage() {
   return (
@@ -195,50 +196,7 @@ export default function LandingPage() {
           <h2 className="text-3xl font-semibold text-gray-900 text-center mb-12">
             Impressions
           </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            <div className="rounded-xl overflow-hidden shadow-md">
-              <img
-                src="/paint-by-numbers-line-drawing-of-landscape.jpg"
-                alt="Line drawing example"
-                className="w-full h-64 object-cover"
-              />
-            </div>
-            <div className="rounded-xl overflow-hidden shadow-md">
-              <img
-                src="/paint-by-numbers-painted-preview-of-portrait.jpg"
-                alt="Painted preview example"
-                className="w-full h-64 object-cover"
-              />
-            </div>
-            <div className="rounded-xl overflow-hidden shadow-md">
-              <img
-                src="/printed-paint-by-numbers-template-on-canvas.jpg"
-                alt="Printed template example"
-                className="w-full h-64 object-cover"
-              />
-            </div>
-            <div className="rounded-xl overflow-hidden shadow-md">
-              <img
-                src="/paint-by-numbers-of-flowers-being-painted.jpg"
-                alt="Work in progress"
-                className="w-full h-64 object-cover"
-              />
-            </div>
-            <div className="rounded-xl overflow-hidden shadow-md">
-              <img
-                src="/completed-paint-by-numbers-artwork-of-sunset.jpg"
-                alt="Completed artwork"
-                className="w-full h-64 object-cover"
-              />
-            </div>
-            <div className="rounded-xl overflow-hidden shadow-md">
-              <img
-                src="/paint-by-numbers-template-with-color-palette.jpg"
-                alt="Template with palette"
-                className="w-full h-64 object-cover"
-              />
-            </div>
-          </div>
+          <ImpressionsCarousel />
         </div>
       </section>
 
@@ -251,8 +209,8 @@ export default function LandingPage() {
 
             <p className="text-lg text-gray-600 mb-8">
               Start transforming your images into beautiful paint-by-numbers
-              templates today. It's free to use and takes just seconds to get
-              started.
+              templates today. It&apos;s free to use and takes just seconds to
+              get started.
             </p>
 
             <Button
