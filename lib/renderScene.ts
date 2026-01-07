@@ -70,6 +70,7 @@ export function renderSceneSvg(scene: Scene, opts: RenderSceneOpts): string {
   if (opts.labels) {
     for (const r of scene.regions) {
       if (!r.label) continue;
+      if (r.label.x == null || r.label.y == null) continue;
       labels.push(
         `<text x="${r.label.x}" y="${r.label.y}"
           font-size="${opts.labelFontSize}"

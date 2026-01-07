@@ -138,7 +138,7 @@ export type SceneRegion = {
   fill: { d: string }; // evenodd
   outline: { d: string };
   region: { d: string };
-  label: { x: number; y: number; r?: number };
+  label: { x?: number; y?: number; r?: number };
 };
 
 export type SceneOptions = {

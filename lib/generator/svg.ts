@@ -18,7 +18,7 @@ const unk = (s: Key): Pt => {
 };
 const ekey = (a: Key, b: Key) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
-// 1) Topologie-sichere Vereinfachung: nur kollineare Punkte entfernen
+// remove collinear points from a polyline
 function removeCollinear(pts: Pt[]): Pt[] {
   if (pts.length < 3) return pts;
   const out: Pt[] = [pts[0]];
@@ -40,9 +40,7 @@ function removeCollinear(pts: Pt[]): Pt[] {
   return out;
 }
 
-// 2) Optional: lokale Rundung ohne Abkürzen durch andere Regionen
-// macht aus L-L-Knick kleine Q-Kurve.
-// radius in "pixel units" (0.4 - 1.2 ist meist gut)
+// locally smooth a polyline with rounded corners
 function roundedPath(pts: Pt[], radius = 0.6, closed = false): string {
   if (pts.length < 2) return "";
 
@@ -86,7 +84,7 @@ function roundedPath(pts: Pt[], radius = 0.6, closed = false): string {
   return d.join(" ");
 }
 
-// 3) Stitchen: Aus einzelnen Grid-Kanten werden Polylines (Borders)
+// Stitching: Convert individual grid edges into polylines (borders)
 function buildBorderPolylines(
   idAt: Int32Array,
   width: number,
@@ -101,7 +99,7 @@ function buildBorderPolylines(
     adj.get(b)!.push(a);
   };
 
-  // Boundary edges (nur rechts/unten, damit keine Doppelkanten)
+  // Boundary edges (only right/bottom to avoid double edges)
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const p = y * width + x;
@@ -123,7 +121,7 @@ function buildBorderPolylines(
   const unusedNeighbors = (v: Key) =>
     neighbors(v).filter((nb) => !used.has(ekey(v, nb)));
 
-  // Startpunkte: erst endpoints/junctions (grad != 2), dann loops
+  // Start points: first endpoints/junctions (degree != 2), then loops
   const nodes = Array.from(adj.keys());
   const isBranch = (v: Key) => neighbors(v).length !== 2;
 
@@ -280,11 +278,9 @@ function findLabelPoint(
   return { x: x0 + bestX + 0.5, y: y0 + bestY + 0.5, dist: bestD };
 }
 
-// ---------------------------
-// NEW: Facet fills as vector loops (perfect painted preview)
-// ---------------------------
 type Loop = Pt[];
 
+// Build closed loops for a facet using its bounding box (fast)
 function buildFacetLoopsBBox(
   facet: { id: number; minX: number; minY: number; maxX: number; maxY: number },
   idAt: Int32Array,
@@ -557,7 +553,7 @@ export function facetsToScene(
       fill: { d: "" },
       outline: { d: "" },
       region: { d: "" },
-      label: { x: 0, y: 0 },
+      label: { x: undefined, y: undefined },
     };
 
     // label point (optional)
