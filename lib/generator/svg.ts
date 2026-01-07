@@ -1,3 +1,5 @@
+import { Scene, SceneRegion } from "./generator";
+
 export type SvgOpts = {
   stroke: number;
   labels: boolean;
@@ -16,7 +18,7 @@ const unk = (s: Key): Pt => {
 };
 const ekey = (a: Key, b: Key) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
-// 1) Topologie-sichere Vereinfachung: nur kollineare Punkte entfernen
+// remove collinear points from a polyline
 function removeCollinear(pts: Pt[]): Pt[] {
   if (pts.length < 3) return pts;
   const out: Pt[] = [pts[0]];
@@ -38,9 +40,7 @@ function removeCollinear(pts: Pt[]): Pt[] {
   return out;
 }
 
-// 2) Optional: lokale Rundung ohne Abkürzen durch andere Regionen
-// macht aus L-L-Knick kleine Q-Kurve.
-// radius in "pixel units" (0.4 - 1.2 ist meist gut)
+// locally smooth a polyline with rounded corners
 function roundedPath(pts: Pt[], radius = 0.6, closed = false): string {
   if (pts.length < 2) return "";
 
@@ -84,7 +84,7 @@ function roundedPath(pts: Pt[], radius = 0.6, closed = false): string {
   return d.join(" ");
 }
 
-// 3) Stitchen: Aus einzelnen Grid-Kanten werden Polylines (Borders)
+// Stitching: Convert individual grid edges into polylines (borders)
 function buildBorderPolylines(
   idAt: Int32Array,
   width: number,
@@ -99,7 +99,7 @@ function buildBorderPolylines(
     adj.get(b)!.push(a);
   };
 
-  // Boundary edges (nur rechts/unten, damit keine Doppelkanten)
+  // Boundary edges (only right/bottom to avoid double edges)
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const p = y * width + x;
@@ -121,7 +121,7 @@ function buildBorderPolylines(
   const unusedNeighbors = (v: Key) =>
     neighbors(v).filter((nb) => !used.has(ekey(v, nb)));
 
-  // Startpunkte: erst endpoints/junctions (grad != 2), dann loops
+  // Start points: first endpoints/junctions (degree != 2), then loops
   const nodes = Array.from(adj.keys());
   const isBranch = (v: Key) => neighbors(v).length !== 2;
 
@@ -278,11 +278,9 @@ function findLabelPoint(
   return { x: x0 + bestX + 0.5, y: y0 + bestY + 0.5, dist: bestD };
 }
 
-// ---------------------------
-// NEW: Facet fills as vector loops (perfect painted preview)
-// ---------------------------
 type Loop = Pt[];
 
+// Build closed loops for a facet using its bounding box (fast)
 function buildFacetLoopsBBox(
   facet: { id: number; minX: number; minY: number; maxX: number; maxY: number },
   idAt: Int32Array,
@@ -502,4 +500,116 @@ export function facetsToSvg(
   ${labelParts.join("\n  ")}
   ${opts.withPalette ? legend : ""}
 </svg>`;
+}
+
+function toHex2(n: number) {
+  return n.toString(16).padStart(2, "0");
+}
+
+function rgbToHex(r: number, g: number, b: number) {
+  return `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`.toUpperCase();
+}
+
+export function facetsToScene(
+  facets: Array<{
+    id: number;
+    colorIndex: number;
+    pixels: number[];
+    area: number;
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  }>,
+  width: number,
+  height: number,
+  palette: Array<[number, number, number]>,
+  opts?: {
+    radius?: number; // smoothing radius in px units
+    minLabelArea?: number; // default 80
+    minLabelDist?: number; // default 2
+  }
+): Scene {
+  const radius = Math.max(0, opts?.radius ?? 0.5);
+  const minLabelArea = opts?.minLabelArea ?? 80;
+  const minLabelDist = opts?.minLabelDist ?? 2;
+
+  // ---------------------------
+  // 0) idAt map
+  // ---------------------------
+  const idAt = new Int32Array(width * height).fill(-1);
+  for (const f of facets) for (const p of f.pixels) idAt[p] = f.id;
+
+  // ---------------------------
+  // 1) Regions (fill + region outline + labels)
+  // ---------------------------
+  const regions: SceneRegion[] = [];
+
+  for (const f of facets) {
+    const region: SceneRegion = {
+      id: f.id,
+      colorId: f.colorIndex + 1, // 1-based for UI/labels
+      area: f.area,
+      fill: { d: "" },
+      outline: { d: "" },
+      region: { d: "" },
+      label: { x: undefined, y: undefined },
+    };
+
+    // label point (optional)
+    if (f.area >= minLabelArea) {
+      const lp = findLabelPoint(f, idAt, width, height);
+      if (lp && lp.dist >= minLabelDist) {
+        region.label = { x: lp.x, y: lp.y, r: lp.dist };
+      }
+    }
+
+    // region boundary loops -> use for BOTH fill and per-region outline
+    const loops = buildFacetLoopsBBox(f, idAt, width, height);
+    if (loops.length) {
+      const d = loops
+        .map((loop) => roundedPath(removeCollinear(loop), radius, true))
+        .join(" ");
+
+      if (d) {
+        region.fill = { d };
+        region.outline = { d }; // ✅ NEW: same geometry, different rendering
+      }
+    }
+
+    regions.push(region);
+  }
+
+  // ---------------------------
+  // 2) Global outline (optional, for classic black outline)
+  // ---------------------------
+  const polylines = buildBorderPolylines(idAt, width, height);
+  const outlineParts: string[] = [];
+
+  for (const pts of polylines) {
+    const cleaned = removeCollinear(pts);
+
+    const closed =
+      cleaned.length > 3 &&
+      cleaned[0].x === cleaned[cleaned.length - 1].x &&
+      cleaned[0].y === cleaned[cleaned.length - 1].y;
+
+    const ring = closed ? cleaned.slice(0, -1) : cleaned;
+    const d = roundedPath(ring, radius, closed);
+    if (d) outlineParts.push(d);
+  }
+
+  const paletteMap = palette.map(([r, g, b], i) => ({
+    id: i + 1,
+    color: rgbToHex(r, g, b),
+    rgb: `rgb(${r},${g},${b})`,
+  }));
+
+  return {
+    width,
+    height,
+    outline: { d: outlineParts.join(" ") },
+    regions,
+    palette: paletteMap,
+  };
 }
