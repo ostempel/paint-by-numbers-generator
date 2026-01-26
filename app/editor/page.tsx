@@ -11,6 +11,7 @@ import { CanvasViewer } from "@/components/canvas-viewer";
 import { Loader2 } from "lucide-react";
 import { Scene } from "@/lib/generator/generator";
 import { GeneratorOptions } from "@/components/generator-options";
+import Link from "next/link";
 
 type ApiResponse = {
   scene?: Scene | null;
@@ -85,20 +86,20 @@ export default function PaintByNumbersPage() {
   const onGenerate = handleSubmit(processImage);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex flex-col lg:flex-row h-screen">
-        {/* Left Sidebar */}
-        <aside className="w-full lg:w-80 xl:w-96 bg-white border-r border-gray-200 overflow-y-auto p-6 space-y-6">
+    <div className="min-h-[100dvh] bg-gray-50">
+      <div className="flex flex-col lg:flex-row min-h-[100dvh]">
+        <aside className="w-full lg:w-80 xl:w-96 bg-white border-b lg:border-b-0 lg:border-r border-gray-200 p-4 sm:p-6 space-y-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-              Paint by Numbers
-            </h1>
+            <Link href="/" className="inline-block">
+              <h1 className="text-2xl font-semibold text-gray-900 mb-2 hover:underline">
+                Paint by Numbers
+              </h1>
+            </Link>
             <p className="text-sm text-gray-600">
               Upload an image to generate your printable paint-by-numbers
             </p>
           </div>
 
-          {/* Image Input */}
           <Card className="p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-gray-900">Image Input</h2>
             <ImageUpload
@@ -115,9 +116,8 @@ export default function PaintByNumbersPage() {
           />
         </aside>
 
-        {/* Main */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-gray-50">
-          <div className="flex-1 flex items-center justify-center p-6 overflow-hidden relative">
+        <main className="flex-1 flex flex-col min-h-0 bg-gray-50">
+          <div className="flex-1 min-h-0 flex items-stretch justify-stretch p-3 sm:p-6 overflow-hidden relative">
             {isProcessing && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80 z-10">
                 <div className="flex flex-col items-center gap-3">
