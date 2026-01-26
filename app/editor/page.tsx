@@ -45,7 +45,7 @@ export default function PaintByNumbersPage() {
 
   const { handleSubmit } = form;
 
-  const handleImageUpload = (file: File) => {
+  const handleImageUpload = (file: File | null) => {
     setUploadedFile(file);
 
     setPreviewPng(null);
@@ -102,11 +102,8 @@ export default function PaintByNumbersPage() {
           <Card className="p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-gray-900">Image Input</h2>
             <ImageUpload
-              // must call onImageUpload(file, url)
-              //TODO
-              // @ts-expect-error adjust ImageUpload signature if needed
               onImageUpload={handleImageUpload}
-              currentImage={uploadedFile as string | null}
+              currentFile={uploadedFile}
             />
           </Card>
 

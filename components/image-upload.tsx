@@ -1,36 +1,59 @@
 "use client";
 
 import type React from "react";
-
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, X } from "lucide-react";
 
 interface ImageUploadProps {
-  onImageUpload: (imageUrl: string) => void;
-  currentImage: string | null;
+  onImageUpload: (file: File | null) => void;
+  currentFile: File | null;
 }
 
-export function ImageUpload({ onImageUpload, currentImage }: ImageUploadProps) {
+const MAX_FILE_SIZE = 4.5 * 1024 * 1024;
+
+export function ImageUpload({ onImageUpload, currentFile }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const previewUrl = useMemo(() => {
+    if (!currentFile) return null;
+    return URL.createObjectURL(currentFile);
+  }, [currentFile]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const acceptFile = useCallback(
+    (file?: File) => {
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+        setError("Please upload an image file.");
+        return;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        setError("Image is too large. Maximum size is 4.5 MB.");
+        return;
+      }
+
+      setError(null);
+      onImageUpload(file);
+    },
+    [onImageUpload],
+  );
 
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setIsDragging(false);
-
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            onImageUpload(event.target.result as string);
-          }
-        };
-        reader.readAsDataURL(file);
-      }
+      acceptFile(e.dataTransfer.files?.[0]);
     },
-    [onImageUpload]
+    [acceptFile],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -38,35 +61,21 @@ export function ImageUpload({ onImageUpload, currentImage }: ImageUploadProps) {
     setIsDragging(true);
   }, []);
 
-  const handleDragLeave = useCallback(() => {
-    setIsDragging(false);
-  }, []);
+  const handleDragLeave = useCallback(() => setIsDragging(false), []);
 
   const handleFileInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file && file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            onImageUpload(event.target.result as string);
-          }
-        };
-        reader.readAsDataURL(file);
-      }
+      acceptFile(e.target.files?.[0]);
+      e.target.value = "";
     },
-    [onImageUpload]
+    [acceptFile],
   );
 
-  const handleRemoveImage = () => {
-    onImageUpload("");
-  };
-
-  console.log("currentImage", currentImage);
+  const handleRemoveImage = () => onImageUpload(null);
 
   return (
     <div>
-      {!currentImage ? (
+      {!currentFile ? (
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -97,12 +106,17 @@ export function ImageUpload({ onImageUpload, currentImage }: ImageUploadProps) {
               <p className="text-xs text-gray-500 mt-1">or click to browse</p>
             </div>
           </div>
+          <p className="mt-2 text-xs text-gray-500">
+            Max file size: 4.5 MB · JPG, PNG, WebP
+          </p>
+          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
         </div>
       ) : (
         <div className="space-y-3">
           <div className="relative rounded-lg overflow-hidden border border-gray-200">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={currentImage || "/placeholder.svg"}
+              src={previewUrl ?? "/placeholder.svg"}
               alt="Uploaded"
               className="w-full h-32 object-cover"
             />
