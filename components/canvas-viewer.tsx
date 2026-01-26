@@ -101,7 +101,7 @@ export function CanvasViewer({
     filled: true,
     outlines: true,
     labels: true,
-    colorPalette: true,
+    colorPalette: false,
     stroke: 1,
     labelFontSize: 12,
     background: "white",
@@ -146,7 +146,7 @@ export function CanvasViewer({
       const pngUrl = await svgToPngDataUrl(
         svgString,
         scene.width,
-        scene.height
+        scene.height,
       );
       downloadDataUrl("paint-by-numbers.png", pngUrl);
     } catch (e) {
@@ -188,7 +188,7 @@ export function CanvasViewer({
   }
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full flex flex-col min-h-0">
       {/* Controls */}
       <div className="flex items-center justify-center gap-2 mb-4">
         <Button
@@ -283,7 +283,7 @@ export function CanvasViewer({
       {/* Canvas Container */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-hidden rounded-lg border border-gray-200 shadow-sm relative"
+        className="flex-1 min-h-0 overflow-hidden rounded-lg border border-gray-200 shadow-sm relative"
         style={{
           backgroundImage: showGrid
             ? "repeating-linear-gradient(0deg, transparent, transparent 19px, #e5e7eb 19px, #e5e7eb 20px), repeating-linear-gradient(90deg, transparent, transparent 19px, #e5e7eb 19px, #e5e7eb 20px)"
